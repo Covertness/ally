@@ -3,18 +3,20 @@ package main
 import (
 	"log"
 
+	"github.com/Covertness/ally/pkg/account"
+	"github.com/Covertness/ally/pkg/address"
 	"github.com/Covertness/ally/pkg/config"
 	"github.com/Covertness/ally/pkg/etherscan"
+	"github.com/Covertness/ally/pkg/transaction"
 
 	"github.com/Covertness/ally/pkg/transactiongroup"
 
 	"github.com/Covertness/ally/pkg/admin"
 
-	"github.com/Covertness/ally/pkg/stat"
-
 	"github.com/Covertness/ally/pkg/hdwallet"
 	"github.com/Covertness/ally/pkg/item"
 	"github.com/Covertness/ally/pkg/order"
+	"github.com/Covertness/ally/pkg/stat"
 	"github.com/Covertness/ally/pkg/storage"
 	"github.com/gin-gonic/gin"
 )
@@ -26,6 +28,17 @@ func main() {
 		return
 	}
 	defer db.Close()
+
+	err = db.AutoMigrate(
+		&config.Config{},
+		&account.Account{}, &item.Item{},
+		&address.Address{}, &order.Order{},
+		&transaction.Transaction{}, &transactiongroup.TransactionGroup{},
+	).Error
+	if err != nil {
+		log.Fatalf("db auto migrate err: %v", err)
+		return
+	}
 
 	mnemonic, err := config.GetMnemonic()
 	if err != nil {

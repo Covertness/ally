@@ -3,14 +3,10 @@ package main
 import (
 	"log"
 
-	"github.com/Covertness/ally/pkg/address"
 	"github.com/Covertness/ally/pkg/config"
-	"github.com/Covertness/ally/pkg/item"
 	"github.com/Covertness/ally/pkg/order"
 	"github.com/Covertness/ally/pkg/transaction"
-	"github.com/Covertness/ally/pkg/transactiongroup"
 
-	"github.com/Covertness/ally/pkg/account"
 	"github.com/Covertness/ally/pkg/messagequeue"
 	"github.com/Covertness/ally/pkg/storage"
 
@@ -25,17 +21,6 @@ func main() {
 		return
 	}
 	defer db.Close()
-
-	err = db.AutoMigrate(
-		&config.Config{},
-		&account.Account{}, &item.Item{},
-		&address.Address{}, &order.Order{},
-		&transaction.Transaction{}, &transactiongroup.TransactionGroup{},
-	).Error
-	if err != nil {
-		log.Fatalf("db auto migrate err: %v", err)
-		return
-	}
 
 	err = messagequeue.InitQueue()
 	if err != nil {
