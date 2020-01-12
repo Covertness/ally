@@ -70,6 +70,8 @@ func processOrder(orderID uint) error {
 		return provision(&o)
 	case StatusDepositable, StatusDepositing:
 		return checkDeposit(&o)
+	case StatusDone, StatusTimeout:
+		return nil
 	default:
 		log.Fatalf("unexpected status %s", o.Status)
 		return nil
