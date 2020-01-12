@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/Covertness/ally/pkg/config"
 	"github.com/Covertness/ally/pkg/ethclient"
 	"github.com/Covertness/ally/pkg/etherscan"
 	"github.com/Covertness/ally/pkg/storage"
@@ -92,7 +93,12 @@ func (t *Transaction) Apply() error {
 	addr := t.Address
 
 	var lockAddr address.Address
-	err := tx.Set("gorm:query_option", "FOR UPDATE").First(&lockAddr, addr.ID).Error
+	var err error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.First(&lockAddr, addr.ID).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").First(&lockAddr, addr.ID).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return err

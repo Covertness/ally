@@ -32,9 +32,19 @@ func rootAddress(c *gin.Context) {
 		return
 	}
 
+	condition, err := apd.BaseContext.Mul(balance, balance, apd.New(1, -18))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if condition.Any() {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": condition.String()})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"address": root.Address,
-		"balance": balance,
+		"balance": balance.Text('f'),
 	})
 }
 

@@ -99,7 +99,13 @@ func checkDeposit(o *Order) error {
 		}
 	}
 
-	condition, err := apd.BaseContext.Mul(balance, balance, apd.New(1, -18))
+	scaner := etherscan.GetInstance()
+	decimals, err := scaner.GetTokenDecimals()
+	if err != nil {
+		return err
+	}
+
+	condition, err := apd.BaseContext.Mul(balance, balance, apd.New(1, -int32(decimals)))
 	if err != nil {
 		return err
 	}

@@ -31,6 +31,7 @@ $ curl "http://localhost:8080/api/v1/admin/rootAddress"
 Deploy the contracts under [the contracts directory](contracts/) and get the contract address. Remember set it into the [Environment](#environment).
 
 #### start component: dispatcher and worker
+Don't forget start `beanstalk` before this step.
 - dispatcher
 ```bash
 $ go run cmd/dispatcher/main.go

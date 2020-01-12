@@ -6,6 +6,7 @@ import (
 	"github.com/Covertness/ally/pkg/transaction"
 
 	"github.com/Covertness/ally/pkg/address"
+	"github.com/Covertness/ally/pkg/config"
 	"github.com/Covertness/ally/pkg/storage"
 
 	"github.com/cockroachdb/apd"
@@ -16,7 +17,12 @@ func CreateAdminWithdrawGroup(amount *apd.Decimal, to string) (*TransactionGroup
 	tx := storage.GetDB().Begin()
 
 	var addrs []*address.Address
-	err := tx.Set("gorm:query_option", "FOR UPDATE").Where("debt > 0").Find(&addrs).Error
+	var err error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.Where("debt > 0").Find(&addrs).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").Where("debt > 0").Find(&addrs).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return nil, err

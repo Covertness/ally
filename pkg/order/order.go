@@ -7,6 +7,7 @@ import (
 
 	"github.com/Covertness/ally/pkg/account"
 	"github.com/Covertness/ally/pkg/address"
+	"github.com/Covertness/ally/pkg/config"
 	"github.com/Covertness/ally/pkg/ethclient"
 	"github.com/Covertness/ally/pkg/item"
 	"github.com/Covertness/ally/pkg/storage"
@@ -61,7 +62,12 @@ func (o *Order) RequestAddress() error {
 	tx := storage.GetDB().Begin()
 
 	var latestOrder Order
-	err := tx.Set("gorm:query_option", "FOR UPDATE").First(&latestOrder, o.ID).Error
+	var err error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.First(&latestOrder, o.ID).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").First(&latestOrder, o.ID).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -110,21 +116,34 @@ func (o *Order) ApplyDeposit(amount *apd.Decimal) error {
 	tx := storage.GetDB().Begin()
 
 	var addr address.Address
-	err := tx.Set("gorm:query_option", "FOR UPDATE").First(&addr, o.AddressID).Error
+	var err error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.First(&addr, o.AddressID).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").First(&addr, o.AddressID).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	var acc account.Account
-	err = tx.Set("gorm:query_option", "FOR UPDATE").First(&acc, addr.AccountID).Error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.First(&acc, addr.AccountID).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").First(&acc, addr.AccountID).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
 	var latestOrder Order
-	err = tx.Set("gorm:query_option", "FOR UPDATE").First(&latestOrder, o.ID).Error
+	if config.GetDBDialect() == "sqlite3" {
+		err = tx.First(&latestOrder, o.ID).Error
+	} else {
+		err = tx.Set("gorm:query_option", "FOR UPDATE").First(&latestOrder, o.ID).Error
+	}
 	if err != nil {
 		tx.Rollback()
 		return err
