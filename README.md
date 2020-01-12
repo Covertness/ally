@@ -9,12 +9,12 @@ An ecommerce system based on [Ethereum](https://ethereum.org/). The business can
 
 ### Environment
 The Ethereum has one mainnet and some testnet. Also it has many token. Ally choose them through the operating system environment variables. Besides other configurations are set by this way. Please set the following environment variables before setup ally.
-- INFURA_ENDPOINT [the infura endpoint](https://infura.io/docs/gettingStarted/chooseaNetwork.md), default is `kovan`
-- INFURA_ID the infura project ID from [your dashboard](https://infura.io/dashboard)
-- ETHERSCAN_HOST the Etherscan host, default is `api-kovan.etherscan.io`
-- ETHERSCAN_APIKEY the Etherscan APIKEY
-- TOKEN_CONTRACT the token contract address, default is `0xFab46E002BbF0b4509813474841E0716E6730136`
-- CONTRACT_ADDRESS_FACTORY_ADDRESS the contract address, get it after [deploy the smart contract]()
+- `INFURA_ENDPOINT` [the infura endpoint](https://infura.io/docs/gettingStarted/chooseaNetwork.md), default is `kovan`
+- `INFURA_ID` the infura project ID from [your dashboard](https://infura.io/dashboard)
+- `ETHERSCAN_HOST` the Etherscan host, default is `api-kovan.etherscan.io`
+- `ETHERSCAN_APIKEY` the Etherscan APIKEY
+- `TOKEN_CONTRACT` the token contract address, default is `0xFab46E002BbF0b4509813474841E0716E6730136`
+- `CONTRACT_ADDRESS_FACTORY_ADDRESS` the contract address, get it after [deploy the smart contract](#deploy-smart-contracts)
 
 ### Setup
 #### start component: api
@@ -28,7 +28,7 @@ $ curl "http://localhost:8080/api/v1/admin/rootAddress"
 ```
 
 #### deploy smart contracts
-Deploy the contracts under [the contracts directory](contracts/) and get the contract address. Remember set it into the [Environment]().
+Deploy the contracts under [the contracts directory](contracts/) and get the contract address. Remember set it into the [Environment](#environment).
 
 #### start component: dispatcher and worker
 - dispatcher

@@ -2,5 +2,3 @@
 *.sh
 *.db
 contracts/build/
-contracts/addressFactory.go
-contracts/ERC20.go
