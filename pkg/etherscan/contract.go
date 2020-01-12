@@ -24,6 +24,10 @@ func (e *Etherscan) GetTokenDecimals() (uint8, error) {
 		return 0, err
 	}
 
-	e.TokenDecimals, err = token.Decimals(&bind.CallOpts{})
-	return e.TokenDecimals, err
+	d, err := token.Decimals(&bind.CallOpts{})
+	if err != nil {
+		return 0, err
+	}
+	e.TokenDecimals = d
+	return e.TokenDecimals, nil
 }

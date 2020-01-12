@@ -1,5 +1,5 @@
 # Ally
-An ecommerce system based on [Ethereum](https://ethereum.org/). The business can sell his products through any ERC-20 token, such as USDT, BAT and so on.
+An ecommerce agent based on [Ethereum](https://ethereum.org/). The business can collect any ERC-20 token through sell products , such as USDT, BAT and so on.
 
 ## Quick Start
 ### Dependencies
@@ -43,9 +43,9 @@ $ go run cmd/worker/main.go
 ```
 
 ### Try
-1. create an item
+1. create a product
 ```bash
-$ curl -X POST -H "Content-type: application/json" -H "Accept: application/json" -d '{"externalID": "my_id", "price": "1.66"}' http://localhost:8080/api/v1/items
+$ curl -X POST -H "Content-type: application/json" -H "Accept: application/json" -d '{"externalID": "my_id", "price": "0.01"}' http://localhost:8080/api/v1/items
 ```
 
 2. create an order
