@@ -70,12 +70,16 @@ func (t *Transaction) RequestApply() error {
 	if condition.Any() {
 		return errors.New(condition.String())
 	}
+	amountInt, ok := new(big.Int).SetString(amount.Text('f'), 0)
+	if !ok {
+		return errors.New("amount error")
+	}
 
 	id := new(big.Int).SetUint64(uint64(t.Address.ID))
 	tokenAddress := common.HexToAddress(scaner.ContractAddress)
 	toAddress := common.HexToAddress(t.To)
 
-	newTx, err := factory.SendFundsFromReceiverTo(signer, id, tokenAddress, &amount.Coeff, toAddress)
+	newTx, err := factory.SendFundsFromReceiverTo(signer, id, tokenAddress, amountInt, toAddress)
 	if err != nil {
 		return err
 	}
@@ -112,14 +116,15 @@ func (t *Transaction) Apply() error {
 		tx.Rollback()
 		return errors.New(condition.String())
 	}
-	err = tx.Save(&lockAddr).Error
+
+	t.Status = StatusDone
+	err = tx.Save(&t).Error
 	if err != nil {
 		tx.Rollback()
 		return err
 	}
 
-	t.Status = StatusDone
-	err = tx.Save(&t).Error
+	err = tx.Save(&lockAddr).Error
 	if err != nil {
 		tx.Rollback()
 		return err

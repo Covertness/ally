@@ -53,22 +53,23 @@ $ curl -X POST -H "Content-type: application/json" -H "Accept: application/json"
 $ curl -X POST -H "Content-type: application/json" -H "Accept: application/json" -d '{"itemID": 1, "sequence": 1, "account": "test"}' http://localhost:8080/api/v1/orders
 ```
 
-3. get the deposit address
+3. get the deposit address and then deposit the exact tokens into the address
 ```bash
 $ curl "http://localhost:8080/api/v1/orders/1"
 ```
 
 4. check the balance of Ally agent
+It maybe take a little time for confirmation. You can check the order's transaction status with [the ethereum browser](https://etherscan.io/).
 ```bash
 $ curl "http://localhost:8080/api/v1/stat"
 ```
 
-5. withdraw the token
+5. withdraw tokens
 ```bash
 $ curl -X POST -H "Content-type: application/json" -H "Accept: application/json" -d '{"to": "0xAdbf42299d432Db7A70e298d07B7f33ce84Ae095", "amount": "0.01"}' http://localhost:8080/api/v1/admin/withdraw
 ```
 
-6. check the withdraw transactions status
+6. check the status of withdraw
 ```bash
 $ curl "http://localhost:8080/api/v1/transactiongroups/1"
 ```
