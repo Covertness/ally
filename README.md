@@ -3,9 +3,10 @@ An ecommerce agent based on [Ethereum](https://ethereum.org/). The business can 
 
 ## Quick Start
 ### Dependencies
-1. Ally implemented in Golang. Install [golang](https://golang.org/) at first.
-2. Ally is based on [infura](https://infura.io/) and [Etherscan](https://etherscan.io/). Please get the api keys from their platforms.
-3. Ally components communicate with each other through [beanstalk](https://beanstalkd.github.io/).
+`./scripts/dev_setup.sh` will install the following dependencies.
+1. Ally implemented in [Golang](https://golang.org/).
+2. [beanstalk](https://beanstalkd.github.io/) is in charge of internal communication.
+3. Besides [infura](https://infura.io/) and [Etherscan](https://etherscan.io/) provide the Ethereum APIs. Please get the api keys from their platforms.
 
 ### Environment
 The Ethereum has one mainnet and some testnet. Also it has many token. Ally choose them through the operating system environment variables. Besides other configurations are set by this way. Please set the following environment variables before setup ally.
@@ -54,12 +55,12 @@ $ curl -X POST -H "Content-type: application/json" -H "Accept: application/json"
 ```
 
 3. get the deposit address and then deposit the exact tokens into the address
+> It maybe take a little time for confirmation. You can check the order's transaction status with [the ethereum browser](https://etherscan.io/).
 ```bash
 $ curl "http://localhost:8080/api/v1/orders/1"
 ```
 
 4. check the balance of Ally agent
-It maybe take a little time for confirmation. You can check the order's transaction status with [the ethereum browser](https://etherscan.io/).
 ```bash
 $ curl "http://localhost:8080/api/v1/stat"
 ```
