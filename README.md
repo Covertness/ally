@@ -1,5 +1,5 @@
 # Ally
-An ecommerce agent based on [Ethereum](https://ethereum.org/). The business can collect any ERC-20 token through sell products , such as USDT, BAT and so on.
+An ecommerce agent based on [Ethereum](https://ethereum.org/). The business can collect any ERC-20 tokens through sell products , such as [USDT](https://etherscan.io/token/0xdac17f958d2ee523a2206206994597c13d831ec7), [BAT](https://etherscan.io/token/0x0d8775f648430679a709e98d2b0cb6250d2887ef) and so on.
 
 ## Quick Start
 ### Dependencies
@@ -20,7 +20,7 @@ The Ethereum has one mainnet and some testnet. Also it has many token. Ally choo
 ### Setup
 #### start component: api
 ```bash
-$ go run cmd/api/main.go
+$ ./scripts/start_api.sh
 ```
 
 #### get the management address and deposit some ethers as gas fee
@@ -30,17 +30,20 @@ $ curl "http://localhost:8080/api/v1/admin/rootAddress"
 
 #### deploy smart contracts
 Deploy the contracts under [the contracts directory](contracts/) and get the contract address. Remember set it into the [Environment](#environment).
+```bash
+$ ./scripts/deploy_contracts.sh
+```
 
 #### start component: dispatcher and worker
 Don't forget start `beanstalk` before this step.
 - dispatcher
 ```bash
-$ go run cmd/dispatcher/main.go
+$ ./scripts/start_dispatcher.sh
 ```
 
 - worker
 ```bash
-$ go run cmd/worker/main.go
+$ ./scripts/start_worker.sh
 ```
 
 ### Try
