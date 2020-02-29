@@ -3,6 +3,7 @@ package order
 import (
 	"errors"
 	"log"
+	"time"
 
 	"github.com/Covertness/ally/pkg/etherscan"
 	"github.com/Covertness/ally/pkg/messagequeue"
@@ -83,6 +84,15 @@ func provision(o *Order) error {
 }
 
 func checkDeposit(o *Order) error {
+	if o.UpdatedAt.Add(time.Hour).Before(time.Now()) {
+		err := storage.GetDB().Model(o).Updates(Order{
+			Status: StatusTimeout,
+		}).Error
+		if err != nil {
+			return err
+		}
+	}
+
 	balance, err := etherscan.GetInstance().GetTokenBalance(o.Address.Address)
 	if err != nil {
 		return err
