@@ -28,3 +28,14 @@ func Create(externalID string, price *apd.Decimal, meta map[string]interface{}) 
 
 	return newItem, nil
 }
+
+// GetByID get item by id
+func GetByID(id uint) (*Item, error) {
+	var model Item
+	err := storage.GetDB().First(&model, id).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &model, err
+}

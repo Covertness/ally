@@ -3,6 +3,7 @@ package item
 import (
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/cockroachdb/apd"
@@ -12,6 +13,7 @@ import (
 // Register routes
 func Register(router *gin.RouterGroup) {
 	router.POST("", create)
+	router.GET("/:id", show)
 }
 
 func create(c *gin.Context) {
@@ -28,7 +30,7 @@ func create(c *gin.Context) {
 			return
 		}
 
-		log.Fatalf("create item err: %v", err)
+		log.Printf("create item err: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
@@ -47,4 +49,27 @@ type createReq struct {
 	ExternalID string       `binding:"required"`
 	Price      *apd.Decimal `binding:"required"`
 	Meta       map[string]interface{}
+}
+
+func show(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		id = 0
+	}
+
+	mItem, err := GetByID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":         mItem.ID,
+		"externalID": mItem.ExternalID,
+		"price":      mItem.Price,
+		"meta":       mItem.Meta,
+		"createdAt":  mItem.CreatedAt,
+		"updatedAt":  mItem.UpdatedAt,
+	})
 }
