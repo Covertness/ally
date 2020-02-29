@@ -1,6 +1,7 @@
 package order
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -78,11 +79,26 @@ func show(c *gin.Context) {
 	}
 
 	mOrder, err := GetByID(uint(id))
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+			return
+		}
+
+		log.Printf("err: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":        mOrder.ID,
-		"status":    mOrder.Status,
-		"address":   mOrder.Address.Address,
+		"id":      mOrder.ID,
+		"status":  mOrder.Status,
+		"address": mOrder.Address.Address,
+		"item": gin.H{
+			"id":         mOrder.Item.ID,
+			"externalID": mOrder.Item.ExternalID,
+			"price":      mOrder.Item.Price,
+		},
 		"createdAt": mOrder.CreatedAt,
 		"updatedAt": mOrder.UpdatedAt,
 	})

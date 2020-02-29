@@ -8,6 +8,7 @@ import (
 
 	"github.com/cockroachdb/apd"
 	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
 )
 
 // Register routes
@@ -60,7 +61,13 @@ func show(c *gin.Context) {
 
 	mItem, err := GetByID(uint(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+		if gorm.IsRecordNotFoundError(err) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "object not found"})
+			return
+		}
+
+		log.Printf("err: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{})
 		return
 	}
 

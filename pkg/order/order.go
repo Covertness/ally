@@ -49,7 +49,7 @@ func GetByStatuses(statuses []string) (orders []*Order, err error) {
 // GetByID get order by id
 func GetByID(id uint) (*Order, error) {
 	var model Order
-	err := storage.GetDB().Preload("Address").First(&model, id).Error
+	err := storage.GetDB().Preload("Address").Preload("Item").First(&model, id).Error
 	if err != nil {
 		return nil, err
 	}
