@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math/big"
+	"time"
 
 	"github.com/Covertness/ally/pkg/account"
 	"github.com/Covertness/ally/pkg/address"
@@ -232,6 +233,11 @@ func (o *Order) GetItemPrice() (*apd.Decimal, error) {
 		return nil, err
 	}
 	return mItem.Price, nil
+}
+
+// ExpiredAt the expire time
+func (o *Order) ExpiredAt() time.Time {
+	return o.UpdatedAt.Add(time.Hour)
 }
 
 func (o *Order) fetchAddress(tx *gorm.DB) (bool, error) {

@@ -84,7 +84,7 @@ func provision(o *Order) error {
 }
 
 func checkDeposit(o *Order) error {
-	if o.UpdatedAt.Add(time.Hour).Before(time.Now()) {
+	if o.ExpiredAt().Before(time.Now()) {
 		err := storage.GetDB().Model(o).Updates(Order{
 			Status: StatusTimeout,
 		}).Error

@@ -101,5 +101,6 @@ func show(c *gin.Context) {
 		},
 		"createdAt": mOrder.CreatedAt,
 		"updatedAt": mOrder.UpdatedAt,
+		"expiredAt": mOrder.ExpiredAt(),
 	})
 }
