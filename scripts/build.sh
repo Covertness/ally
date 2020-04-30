@@ -11,3 +11,4 @@ fi
 go build -o bin/api cmd/api/main.go
 go build -o bin/dispatcher cmd/dispatcher/main.go
 go build -o bin/worker cmd/worker/main.go
+go build -o bin/bot cmd/bot/main.go
