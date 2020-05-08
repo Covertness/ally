@@ -5,7 +5,7 @@ import "github.com/Covertness/ally/pkg/storage"
 // GetAll get all available markets
 func GetAll() ([]*Market, error) {
 	var models []*Market
-	err := storage.GetDB().Find(&models, Market{Enable: true}).Error
+	err := storage.GetDB().Order("id ASC").Find(&models, Market{Enable: true}).Error
 	if err != nil {
 		return nil, err
 	}
