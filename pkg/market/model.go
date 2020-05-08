@@ -11,5 +11,6 @@ type Market struct {
 
 // Market provider
 const (
-	ProviderFTX = "FTX"
+	ProviderFTX      = "FTX"
+	ProviderCoinBase = "Coinbase"
 )

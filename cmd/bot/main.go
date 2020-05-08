@@ -6,6 +6,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/Covertness/ally/pkg/coinbase"
 	"github.com/Covertness/ally/pkg/config"
 	"github.com/Covertness/ally/pkg/ftx"
 	marketPkg "github.com/Covertness/ally/pkg/market"
@@ -60,6 +61,7 @@ func main() {
 	}
 
 	myFtx := ftx.Init()
+	myCoinBase := coinbase.Init()
 
 	b.Handle("/start", func(m *tb.Message) {
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n/markets 查看行情", m.Sender.FirstName, m.Sender.LastName))
@@ -82,12 +84,20 @@ func main() {
 		table := newTable(&buf)
 
 		for _, market := range allMarkets {
-			if market.Provider == marketPkg.ProviderFTX {
+			switch market.Provider {
+			case marketPkg.ProviderFTX:
 				m := funk.Find(ftxMarkets, func(m *ftx.Market) bool { return m.Name == market.Name })
 				if m != nil {
 					ftxMarket := m.(*ftx.Market)
 					table.Append([]string{market.Name, fmt.Sprintf("%f", ftxMarket.Last)})
 				}
+			case marketPkg.ProviderCoinBase:
+				p, err := myCoinBase.GetPriceSpot(market.Name)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				table.Append([]string{market.Name, p.Amount})
 			}
 		}
 		table.Render()
@@ -113,15 +123,27 @@ func main() {
 			return
 		}
 
-		ftxMarket, err := myFtx.GetMarket(market.Name)
-		if err != nil {
-			log.Error(err)
-			return
+		var price string
+		switch market.Provider {
+		case marketPkg.ProviderFTX:
+			ftxMarket, err := myFtx.GetMarket(market.Name)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			price = fmt.Sprintf("%f", ftxMarket.Last)
+		case marketPkg.ProviderCoinBase:
+			p, err := myCoinBase.GetPriceSpot(market.Name)
+			if err != nil {
+				log.Error(err)
+				return
+			}
+			price = p.Amount
 		}
 
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("名称：\n%s", market.Name))
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("简介：\n%s", market.Description))
-		_, _ = sendResponse(m.Sender, fmt.Sprintf("最近成交价：\n%f", ftxMarket.Last))
+		_, _ = sendResponse(m.Sender, fmt.Sprintf("最近成交价：\n%s", price))
 	})
 
 	log.Info("bot is working...")
