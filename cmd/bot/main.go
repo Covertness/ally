@@ -109,7 +109,7 @@ func main() {
 	b.Handle("/market", func(m *tb.Message) {
 		marketName := m.Payload
 		if len(marketName) == 0 {
-			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要查询行情的名称，比如\n/market BTC/USDT"))
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要查询行情的名称，比如\n/market BTC-USD"))
 			return
 		}
 
@@ -119,7 +119,7 @@ func main() {
 			return
 		}
 		if market == nil || !market.Enable {
-			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到行情，请输入正确的名称，比如\n/market BTC/USDT"))
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到行情，请输入正确的名称，比如\n/market BTC-USD"))
 			return
 		}
 
