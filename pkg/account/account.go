@@ -26,3 +26,10 @@ func Create(name string, meta map[string]interface{}) (*Account, error) {
 
 	return newAccount, nil
 }
+
+// GetOrCreate get account by name, create if not exist
+func GetOrCreate(name string) (*Account, error) {
+	var myAccount Account
+	err := storage.GetDB().FirstOrCreate(&myAccount, Account{Name: name}).Error
+	return &myAccount, err
+}

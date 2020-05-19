@@ -23,3 +23,14 @@ func GetByName(name string) (*Market, error) {
 
 	return &model, err
 }
+
+// GetByID get the specified market by id
+func GetByID(id uint) (*Market, error) {
+	var model Market
+	err := storage.GetDB().Where(&Market{ID: id}).First(&model).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &model, err
+}

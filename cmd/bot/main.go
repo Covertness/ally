@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/Covertness/ally/pkg/account"
+	"github.com/Covertness/ally/pkg/favorite"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/Covertness/ally/pkg/coinbase"
@@ -16,6 +19,11 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	tb "gopkg.in/tucnak/telebot.v2"
+)
+
+var (
+	myFtx *ftx.FTX
+	myCoinBase *coinbase.CoinBase
 )
 
 func main() {
@@ -34,6 +42,7 @@ func main() {
 
 	err = db.AutoMigrate(
 		&marketPkg.Market{},
+		&account.Account{}, &favorite.Favorite{},
 	).Error
 	if err != nil {
 		log.Fatal(err)
@@ -60,8 +69,8 @@ func main() {
 		return b.Send(to, what, options...)
 	}
 
-	myFtx := ftx.Init()
-	myCoinBase := coinbase.Init()
+	myFtx = ftx.Init()
+	myCoinBase = coinbase.Init()
 
 	b.Handle("/start", func(m *tb.Message) {
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n/markets 查看行情", m.Sender.FirstName, m.Sender.LastName))
@@ -74,35 +83,13 @@ func main() {
 			return
 		}
 
-		ftxMarkets, err := myFtx.GetMarkets()
+		data, err := outputMarkets(allMarkets)
 		if err != nil {
 			log.Error(err)
 			return
 		}
 
-		var buf bytes.Buffer
-		table := newTable(&buf)
-
-		for _, market := range allMarkets {
-			switch market.Provider {
-			case marketPkg.ProviderFTX:
-				m := funk.Find(ftxMarkets, func(m *ftx.Market) bool { return m.Name == market.Name })
-				if m != nil {
-					ftxMarket := m.(*ftx.Market)
-					table.Append([]string{market.Name, fmt.Sprintf("%f", ftxMarket.Last)})
-				}
-			case marketPkg.ProviderCoinBase:
-				p, err := myCoinBase.GetPriceSpot(market.Name)
-				if err != nil {
-					log.Error(err)
-					continue
-				}
-				table.Append([]string{market.Name, p.Amount})
-			}
-		}
-		table.Render()
-
-		markdownStr := fmt.Sprintf("```\n%s\n```/market 查看详情", buf.String())
+		markdownStr := fmt.Sprintf("```\n%s\n```/market 查看详情", data)
 		_, _ = sendResponse(m.Sender, markdownStr, tb.ModeMarkdown)
 	})
 
@@ -146,6 +133,114 @@ func main() {
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("最近成交价：\n%s", price))
 	})
 
+	b.Handle("/pin", func(m *tb.Message) {
+		myAccount, err := account.GetOrCreate(fmt.Sprintf("%d", m.Sender.ID))
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		typeValue := strings.Split(m.Payload, " ")
+		if len(typeValue) < 2 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要关注的类别及索引，比如\n/pin market BTC-USD"))
+			return
+		}
+
+		itemID, err := findFavoriteItemID(typeValue)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if itemID == 0 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到关注对象，请输入正确的类别及索引，比如\n/pin market BTC-USD"))
+			return
+		}
+
+		err = favorite.SetMyFavorite(&favorite.Favorite{
+			AccountID: myAccount.ID,
+			ItemType:  typeValue[0],
+			ItemID:    itemID,
+		})
+		if err != nil && !strings.Contains(err.Error(), "pq: duplicate key value violates unique constraint") {
+			log.Error(err)
+			return
+		}
+
+		_, _ = sendResponse(m.Sender, fmt.Sprintf("关注成功，查看关注列表 /fav"))
+	})
+
+	b.Handle("/unpin", func(m *tb.Message) {
+		myAccount, err := account.GetOrCreate(fmt.Sprintf("%d", m.Sender.ID))
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		typeValue := strings.Split(m.Payload, " ")
+		if len(typeValue) < 2 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要取消关注的类别及索引，比如\n/unpin market BTC-USD"))
+			return
+		}
+
+		itemID, err := findFavoriteItemID(typeValue)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+		if itemID == 0 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到关注对象，请输入正确的类别及索引，比如\n/unpin market BTC-USD"))
+			return
+		}
+
+		err = favorite.DelMyFavorite(&favorite.Favorite{
+			AccountID: myAccount.ID,
+			ItemType:  typeValue[0],
+			ItemID:    itemID,
+		})
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		_, _ = sendResponse(m.Sender, fmt.Sprintf("取消关注成功，查看关注列表 /fav"))
+	})
+
+	b.Handle("/fav", func(m *tb.Message) {
+		myAccount, err := account.GetOrCreate(fmt.Sprintf("%d", m.Sender.ID))
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		favs, err := favorite.GetMyFavorites(myAccount.ID)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		var markets []*marketPkg.Market
+		for _, fav := range favs {
+			switch fav.ItemType {
+			case favorite.ItemTypeMarket:
+				m, err := marketPkg.GetByID(fav.ItemID)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+				markets = append(markets, m)
+			}
+		}
+
+		data, err := outputMarkets(markets)
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		markdownStr := fmt.Sprintf("```\nMarkets:\n%s\n```/unpin 取消关注", data)
+		_, _ = sendResponse(m.Sender, markdownStr, tb.ModeMarkdown)
+	})
+
 	log.Info("bot is working...")
 	b.Start()
 }
@@ -155,4 +250,51 @@ func newTable(writer io.Writer) *tablewriter.Table {
 	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 	table.SetCenterSeparator("|")
 	return table
+}
+
+func outputMarkets(allMarkets []*marketPkg.Market) (string, error) {
+	ftxMarkets, err := myFtx.GetMarkets()
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	table := newTable(&buf)
+
+	for _, market := range allMarkets {
+		switch market.Provider {
+		case marketPkg.ProviderFTX:
+			m := funk.Find(ftxMarkets, func(m *ftx.Market) bool { return m.Name == market.Name })
+			if m != nil {
+				ftxMarket := m.(*ftx.Market)
+				table.Append([]string{market.Name, fmt.Sprintf("%f", ftxMarket.Last)})
+			}
+		case marketPkg.ProviderCoinBase:
+			p, err := myCoinBase.GetPriceSpot(market.Name)
+			if err != nil {
+				log.Error(err)
+				continue
+			}
+			table.Append([]string{market.Name, p.Amount})
+		}
+	}
+	table.Render()
+	return buf.String(), nil
+}
+
+func findFavoriteItemID(typeValue []string) (uint, error) {
+	switch typeValue[0] {
+	case favorite.ItemTypeMarket:
+		market, err := marketPkg.GetByName(typeValue[1])
+		if err != nil && !gorm.IsRecordNotFoundError(err) {
+			return 0, err
+		}
+		if market == nil || !market.Enable {
+			return 0, nil
+		}
+
+		return market.ID, nil
+	default:
+		return 0, nil
+	}
 }
