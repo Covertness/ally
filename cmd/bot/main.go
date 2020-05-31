@@ -80,7 +80,7 @@ func main() {
 	myScraper = scraper.Init()
 
 	b.Handle("/start", func(m *tb.Message) {
-		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n查看行情\n/markets\n查看微博/weibo\n", m.Sender.FirstName, m.Sender.LastName))
+		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n/markets 查看行情\n/weibo 查看微博\n", m.Sender.FirstName, m.Sender.LastName))
 	})
 
 	b.Handle("/markets", func(m *tb.Message) {
