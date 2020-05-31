@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"github.com/Covertness/ally/pkg/account"
 	"github.com/Covertness/ally/pkg/favorite"
+	"github.com/Covertness/ally/pkg/scraper"
+	"github.com/Covertness/ally/pkg/timeline"
 	"io"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,6 +28,7 @@ import (
 var (
 	myFtx *ftx.FTX
 	myCoinBase *coinbase.CoinBase
+	myScraper *scraper.Scraper
 )
 
 func main() {
@@ -43,6 +48,7 @@ func main() {
 	err = db.AutoMigrate(
 		&marketPkg.Market{},
 		&account.Account{}, &favorite.Favorite{},
+		&timeline.Timeline{},
 	).Error
 	if err != nil {
 		log.Fatal(err)
@@ -71,9 +77,10 @@ func main() {
 
 	myFtx = ftx.Init()
 	myCoinBase = coinbase.Init()
+	myScraper = scraper.Init()
 
 	b.Handle("/start", func(m *tb.Message) {
-		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n/markets 查看行情", m.Sender.FirstName, m.Sender.LastName))
+		_, _ = sendResponse(m.Sender, fmt.Sprintf("欢迎 %s %s\n查看行情\n/markets\n查看微博/weibo\n", m.Sender.FirstName, m.Sender.LastName))
 	})
 
 	b.Handle("/markets", func(m *tb.Message) {
@@ -131,6 +138,63 @@ func main() {
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("名称：\n%s", market.Name))
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("简介：\n%s", market.Description))
 		_, _ = sendResponse(m.Sender, fmt.Sprintf("最近成交价：\n%s", price))
+	})
+
+	b.Handle("/weibo_search", func(m *tb.Message) {
+		searchName := m.Payload
+		if len(searchName) == 0 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要搜索的微博账户名称，比如\n`/weibo_search 头条`"), tb.ModeMarkdown)
+			return
+		}
+
+		items, err := myScraper.WeiBoSearch(searchName)
+		if err != nil {
+			log.Error(err)
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到相关帐号，请再次尝试\n`/weibo_search 头条`"), tb.ModeMarkdown)
+			return
+		}
+
+		var buf bytes.Buffer
+		table := newTable(&buf)
+
+		for _, item := range items {
+			table.Append([]string{item.Name, item.ID})
+		}
+
+		table.Render()
+
+		markdownStr := fmt.Sprintf("```\n%s\n``` `/weibo id` 查看此帐号最新的微博", buf.String())
+		_, _ = sendResponse(m.Sender, markdownStr, tb.ModeMarkdown)
+	})
+
+	b.Handle("/weibo", func(m *tb.Message) {
+		id := m.Payload
+		if len(id) == 0 {
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("请输入要查看微博帐号的ID，比如\n`/weibo 1618051664`\n获得帐号ID\n`/weibo_search 关键词`"), tb.ModeMarkdown)
+			return
+		}
+
+		items, err := myScraper.WeiBoTimeline(id)
+		if err != nil {
+			log.Error(err)
+			_, _ = sendResponse(m.Sender, fmt.Sprintf("未找到此帐号，请输入正确的ID，比如\n`/weibo 1618051664`"), tb.ModeMarkdown)
+			return
+		}
+
+		var resp string
+		for _, item := range items {
+			i, _ := strconv.ParseInt(item.Timestamp, 10, 64)
+			tm := time.Unix(i/1000, 0)
+			utm := time.Unix(m.Unixtime, 0)
+			resp += fmt.Sprintf("*%s前*:\n", utm.Sub(tm))
+			resp += fmt.Sprintf("%s\n", item.Text)
+			resp += fmt.Sprintf("[详情](%s)\n", item.Link)
+			resp += "\n\n"
+		}
+
+		resp += fmt.Sprintf("关注此微博帐号\n`/pin timeline weibo %s`\n", id)
+
+		_, _ = sendResponse(m.Sender, resp, tb.ModeMarkdown, tb.NoPreview)
 	})
 
 	b.Handle("/pin", func(m *tb.Message) {
@@ -219,6 +283,7 @@ func main() {
 		}
 
 		var markets []*marketPkg.Market
+		var timelines []*timeline.Timeline
 		for _, fav := range favs {
 			switch fav.ItemType {
 			case favorite.ItemTypeMarket:
@@ -228,6 +293,13 @@ func main() {
 					return
 				}
 				markets = append(markets, m)
+			case favorite.ItemTypeTimeline:
+				t, err := timeline.GetByID(fav.ItemID)
+				if err != nil {
+					log.Error(err)
+					return
+				}
+				timelines = append(timelines, t)
 			}
 		}
 
@@ -237,8 +309,21 @@ func main() {
 			return
 		}
 
-		markdownStr := fmt.Sprintf("```\nMarkets:\n%s\n```/unpin 取消关注", data)
-		_, _ = sendResponse(m.Sender, markdownStr, tb.ModeMarkdown)
+		timelineData, err := outputTimelines(timelines, time.Unix(m.Unixtime, 0))
+		if err != nil {
+			log.Error(err)
+			return
+		}
+
+		var markdownStr string
+		if len(data) > 0 {
+			markdownStr += fmt.Sprintf("```\nMarket:\n%s\n```", data)
+		}
+		if len(timelineData) > 0 {
+			markdownStr += fmt.Sprintf("Timeline:\n\n%s\n\n", timelineData)
+		}
+		markdownStr += fmt.Sprintf("/unpin 取消关注")
+		_, _ = sendResponse(m.Sender, markdownStr, tb.ModeMarkdown, tb.NoPreview)
 	})
 
 	log.Info("bot is working...")
@@ -282,6 +367,64 @@ func outputMarkets(allMarkets []*marketPkg.Market) (string, error) {
 	return buf.String(), nil
 }
 
+func outputTimelines(allTimelines []*timeline.Timeline, now time.Time) (string, error) {
+	var allItems []*timelineItem
+	for _, mTimeline := range allTimelines {
+		switch mTimeline.Provider {
+		case timeline.ProviderWeiBo:
+			switch mTimeline.Type {
+			case timeline.TypeUser:
+				items, err := myScraper.WeiBoTimeline(mTimeline.CustomID)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+
+				for _, item := range items {
+					i, _ := strconv.ParseInt(item.Timestamp, 10, 64)
+					tm := time.Unix(i/1000, 0)
+
+					allItems = append(allItems, &timelineItem{
+						Provider: mTimeline.Provider,
+						Type: mTimeline.Type,
+						Timestamp: tm,
+						Name: item.Name,
+						Text: item.Text,
+						Link: item.Link,
+					})
+				}
+			}
+		}
+	}
+
+	sort.Slice(allItems, func(i, j int) bool {
+		return allItems[i].Timestamp.After(allItems[j].Timestamp)
+	})
+
+	if len(allItems) > 5 {
+		allItems = allItems[:5]
+	}
+
+	var buf string
+	for _, item := range allItems {
+		buf += fmt.Sprintf("*%s %s前 - %s*:\n", item.Name, now.Sub(item.Timestamp), item.Provider)
+		buf += fmt.Sprintf("%s\n", item.Text)
+		buf += fmt.Sprintf("[详情](%s)\n", item.Link)
+		buf += "\n\n"
+	}
+
+	return buf, nil
+}
+
+type timelineItem struct {
+	Provider string
+	Type string
+	Timestamp time.Time
+	Name string
+	Text string
+	Link string
+}
+
 func findFavoriteItemID(typeValue []string) (uint, error) {
 	switch typeValue[0] {
 	case favorite.ItemTypeMarket:
@@ -294,6 +437,30 @@ func findFavoriteItemID(typeValue []string) (uint, error) {
 		}
 
 		return market.ID, nil
+	case favorite.ItemTypeTimeline:
+		if len(typeValue) < 3 {
+			return 0, nil
+		}
+
+		switch typeValue[1] {
+		case timeline.ProviderWeiBo:
+			_, err := myScraper.WeiBoTimeline(typeValue[2])
+			if err != nil {
+				log.Error(err)
+				return 0, nil
+			}
+			t, err := timeline.GetOrCreate(&timeline.Timeline{
+				Provider:  timeline.ProviderWeiBo,
+				Type:      timeline.TypeUser,
+				CustomID:  typeValue[2],
+			})
+			if err != nil {
+				return 0, err
+			}
+			return t.ID, nil
+		default:
+			return 0, nil
+		}
 	default:
 		return 0, nil
 	}

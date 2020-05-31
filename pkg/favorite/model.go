@@ -17,4 +17,5 @@ type Favorite struct {
 // Favorite item type
 const (
 	ItemTypeMarket      = "market"
+	ItemTypeTimeline = "timeline"
 )
