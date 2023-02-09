@@ -9,7 +9,7 @@ require (
 	github.com/cockroachdb/apd v1.1.0
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/gballet/go-libpcsclite v0.0.0-20191108122812-4678299bea08 // indirect
-	github.com/gin-gonic/gin v1.7.0
+	github.com/gin-gonic/gin v1.7.7
 	github.com/imroc/req v0.2.4
 	github.com/jinzhu/gorm v1.9.11
 	github.com/lib/pq v1.2.0 // indirect
